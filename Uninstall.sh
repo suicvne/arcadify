@@ -178,6 +178,7 @@ RemoveArcadifyFiles() {
   RemoveFileIfPresent /usr/share/xsessions/Arcadify.desktop
   RemoveFileIfPresent /etc/Arcadify/blank-cursor.xbm
   RemoveFileIfPresent /etc/Arcadify/blank-cursor-mask.xbm
+  RemoveFileIfPresent /etc/lightdm/lightdm.conf.d/99-Arcadify.conf
   RemoveFileIfPresent /etc/lightdm/lightdm.conf.d/50-Arcadify.conf
   RemoveFileIfPresent /etc/Arcadify/Arcadify.conf
   RemoveDirectoryIfEmpty /etc/Arcadify

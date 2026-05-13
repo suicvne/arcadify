@@ -408,6 +408,24 @@ if [[ -r "${ConfigFile}" ]]; then
   source "${ConfigFile}"
 fi
 
+CurrentUser="$(id -un)"
+
+if [[ -n "${ArcadeUser:-}" && "${CurrentUser}" != "${ArcadeUser}" ]]; then
+  Message="Arcadify is configured for user ${ArcadeUser}, but this session is running as ${CurrentUser}."
+  printf 'Arcadify: %s\n' "${Message}" >&2
+
+  if command -v xmessage >/dev/null 2>&1; then
+    xmessage -center -title "Arcadify" "${Message}" || true
+  fi
+
+  exit 1
+fi
+
+ArcadeHome="$(getent passwd "${ArcadeUser:-${CurrentUser}}" | cut -d: -f6 || true)"
+if [[ -n "${ArcadeHome}" ]]; then
+  export HOME="${ArcadeHome}"
+fi
+
 export DISPLAY="${DISPLAY:-:0}"
 
 if command -v xsetroot >/dev/null 2>&1; then
@@ -632,12 +650,22 @@ ConfigureAutologin() {
   printf 'Arcadify: configuring LightDM autologin...\n'
   CreateDirectory /etc/lightdm/lightdm.conf.d -m 0755
 
-  BackupFileBeforeWrite /etc/lightdm/lightdm.conf.d/50-Arcadify.conf
-  cat >/etc/lightdm/lightdm.conf.d/50-Arcadify.conf <<CONFIG
+  BackupFileBeforeWrite /etc/lightdm/lightdm.conf.d/99-Arcadify.conf
+  cat >/etc/lightdm/lightdm.conf.d/99-Arcadify.conf <<CONFIG
 [Seat:*]
 autologin-user=${ArcadeUser}
+autologin-user-timeout=0
 autologin-session=Arcadify
+user-session=Arcadify
 CONFIG
+
+  if command -v systemctl >/dev/null 2>&1 && systemctl list-unit-files lightdm.service >/dev/null 2>&1; then
+    systemctl enable -f lightdm.service >/dev/null 2>&1 || true
+  fi
+
+  if [[ -x /usr/sbin/lightdm ]]; then
+    printf '/usr/sbin/lightdm\n' >/etc/X11/default-display-manager
+  fi
 
   systemctl set-default graphical.target >/dev/null 2>&1 || true
 }
@@ -652,9 +680,16 @@ Installed:
   /var/lib/Arcadify/InstallManifest.tsv
   /usr/local/bin/ArcadifySession
   /usr/local/bin/ArcadifyLaunchGame
+  /usr/local/bin/ArcadifyRequestLaunch
   /usr/local/bin/ArcadifyMaintenance
   /usr/local/bin/ArcadifyBrowser
   /usr/share/xsessions/Arcadify.desktop
+  /etc/lightdm/lightdm.conf.d/99-Arcadify.conf
+  ${ConfigDirectory}/blank-cursor.xbm
+  ${ConfigDirectory}/blank-cursor-mask.xbm
+  /home/${ArcadeUser}/.config/openbox/menu.xml
+  /home/${ArcadeUser}/.config/openbox/rc.xml
+  /home/${ArcadeUser}/.config/xfce4/terminal/terminalrc
 
 Next:
   Reboot to enter Arcadify automatically if LightDM autologin was enabled.

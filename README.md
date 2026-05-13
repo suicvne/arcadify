@@ -6,7 +6,7 @@ The first version installs:
 
 - a dedicated arcade user
 - a custom `Arcadify` X session
-- LightDM autologin into that session
+- LightDM configured as the display manager with autologin into that session
 - an Arcadify-controlled Openbox maintenance menu
 - launch scripts for the game and fallback maintenance mode
 - a browser launcher that works with `firefox`, `firefox-esr`, or `x-www-browser`
@@ -68,7 +68,7 @@ Choosing Launch Game returns control to the main Arcadify session supervisor bef
 /usr/local/bin/ArcadifyMaintenance
 /usr/local/bin/ArcadifyBrowser
 /usr/share/xsessions/Arcadify.desktop
-/etc/lightdm/lightdm.conf.d/50-Arcadify.conf
+/etc/lightdm/lightdm.conf.d/99-Arcadify.conf
 /etc/Arcadify/blank-cursor.xbm
 /etc/Arcadify/blank-cursor-mask.xbm
 /home/<arcade-user>/.config/openbox/menu.xml
