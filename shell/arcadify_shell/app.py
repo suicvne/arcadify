@@ -84,9 +84,6 @@ class ArcadifyShell:
         else:
             self._draw_gradient(width, height)
 
-        overlay = blend(self.config.background.color, self.config.background.overlay, self.config.background.overlay_alpha)
-        self.screen.create_rectangle(0, 0, width, height, fill=overlay, outline="")
-
     def _draw_gradient(self, width: int, height: int) -> None:
         top = self.config.background.color
         bottom = blend(top, "#020617", 0.58)
@@ -109,10 +106,21 @@ class ArcadifyShell:
                 pass
             elif mode != "center":
                 image = ImageOps.fit(image, (width, height), method=Image.Resampling.LANCZOS)
+            image = self._apply_background_overlay(image)
             return ImageTk.PhotoImage(image)
 
         source = tk.PhotoImage(file=image_path)
         return self._prepare_background_image(source, width, height)
+
+    def _apply_background_overlay(self, image: Image.Image) -> Image.Image:
+        alpha = self.config.background.overlay_alpha
+        if alpha <= 0:
+            return image
+
+        image = image.convert("RGBA")
+        red, green, blue = parse_hex(self.config.background.overlay)
+        overlay = Image.new("RGBA", image.size, (red, green, blue, round(alpha * 255)))
+        return Image.alpha_composite(image, overlay)
 
     def _prepare_background_image(self, image: tk.PhotoImage, width: int, height: int) -> tk.PhotoImage:
         mode = self.config.background.image_mode
