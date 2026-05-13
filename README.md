@@ -7,9 +7,10 @@ The first version installs:
 - a dedicated arcade user
 - a custom `Arcadify` X session
 - LightDM autologin into that session
-- an Openbox maintenance menu
+- an Arcadify-controlled Openbox maintenance menu
 - launch scripts for the game and fallback maintenance mode
 - a browser launcher that works with `firefox`, `firefox-esr`, or `x-www-browser`
+- a dark terminal profile for the arcade user
 - a restore manifest and backups for files Arcadify changes
 
 ## Install
@@ -53,6 +54,7 @@ Maintenance mode uses Openbox and provides a right-click menu with:
 - Shutdown
 
 If `xmessage` is available, Arcadify also shows a small maintenance launcher when the game exits.
+Choosing Launch Game returns control to the main Arcadify session supervisor before relaunching the game, so exiting a relaunched game goes back to maintenance mode instead of ending the login session.
 
 ## Installed Files
 
@@ -62,11 +64,16 @@ If `xmessage` is available, Arcadify also shows a small maintenance launcher whe
 /var/lib/Arcadify/Backups/
 /usr/local/bin/ArcadifySession
 /usr/local/bin/ArcadifyLaunchGame
+/usr/local/bin/ArcadifyRequestLaunch
 /usr/local/bin/ArcadifyMaintenance
 /usr/local/bin/ArcadifyBrowser
 /usr/share/xsessions/Arcadify.desktop
 /etc/lightdm/lightdm.conf.d/50-Arcadify.conf
+/etc/Arcadify/blank-cursor.xbm
+/etc/Arcadify/blank-cursor-mask.xbm
 /home/<arcade-user>/.config/openbox/menu.xml
+/home/<arcade-user>/.config/openbox/rc.xml
+/home/<arcade-user>/.config/xfce4/terminal/terminalrc
 ```
 
 ## Restore Safety

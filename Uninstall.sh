@@ -172,9 +172,12 @@ RestoreFromManifest() {
 RemoveArcadifyFiles() {
   RemoveFileIfPresent /usr/local/bin/ArcadifySession
   RemoveFileIfPresent /usr/local/bin/ArcadifyLaunchGame
+  RemoveFileIfPresent /usr/local/bin/ArcadifyRequestLaunch
   RemoveFileIfPresent /usr/local/bin/ArcadifyMaintenance
   RemoveFileIfPresent /usr/local/bin/ArcadifyBrowser
   RemoveFileIfPresent /usr/share/xsessions/Arcadify.desktop
+  RemoveFileIfPresent /etc/Arcadify/blank-cursor.xbm
+  RemoveFileIfPresent /etc/Arcadify/blank-cursor-mask.xbm
   RemoveFileIfPresent /etc/lightdm/lightdm.conf.d/50-Arcadify.conf
   RemoveFileIfPresent /etc/Arcadify/Arcadify.conf
   RemoveDirectoryIfEmpty /etc/Arcadify
@@ -186,7 +189,11 @@ RemoveOpenboxMenu() {
 
   if [[ -n "${HomeDirectory}" ]]; then
     RemoveFileIfPresent "${HomeDirectory}/.config/openbox/menu.xml"
+    RemoveFileIfPresent "${HomeDirectory}/.config/openbox/rc.xml"
     RemoveDirectoryIfEmpty "${HomeDirectory}/.config/openbox"
+    RemoveFileIfPresent "${HomeDirectory}/.config/xfce4/terminal/terminalrc"
+    RemoveDirectoryIfEmpty "${HomeDirectory}/.config/xfce4/terminal"
+    RemoveDirectoryIfEmpty "${HomeDirectory}/.config/xfce4"
   fi
 }
 

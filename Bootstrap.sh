@@ -265,6 +265,22 @@ InstallSystemFiles() {
   CreateDirectory /usr/local/bin -m 0755
   CreateDirectory /usr/share/xsessions -m 0755
 
+  BackupFileBeforeWrite "${ConfigDirectory}/blank-cursor.xbm"
+  cat >"${ConfigDirectory}/blank-cursor.xbm" <<'CURSOR'
+#define blank_width 1
+#define blank_height 1
+static unsigned char blank_bits[] = {
+   0x00 };
+CURSOR
+
+  BackupFileBeforeWrite "${ConfigDirectory}/blank-cursor-mask.xbm"
+  cat >"${ConfigDirectory}/blank-cursor-mask.xbm" <<'CURSOR'
+#define blank_width 1
+#define blank_height 1
+static unsigned char blank_bits[] = {
+   0x00 };
+CURSOR
+
   BackupFileBeforeWrite "${ConfigDirectory}/Arcadify.conf"
   cat >"${ConfigDirectory}/Arcadify.conf" <<CONFIG
 # Arcadify runtime configuration.
@@ -304,28 +320,57 @@ set -Eeuo pipefail
 
 export DISPLAY="${DISPLAY:-:0}"
 
+RequestFile="${XDG_RUNTIME_DIR:-/tmp}/ArcadifyLaunchGame"
+
+rm -f "${RequestFile}"
 openbox --reconfigure >/dev/null 2>&1 || true
 
-if command -v xmessage >/dev/null 2>&1; then
-  xmessage -center -buttons "Launch Game:0,Terminal:10,Files:11,Firefox:12,Shutdown:20" \
-    "Arcadify maintenance mode" || Status="$?"
-  Status="${Status:-0}"
-
-  case "${Status}" in
-    0) exec /usr/local/bin/ArcadifyLaunchGame ;;
-    10) xfce4-terminal >/dev/null 2>&1 & ;;
-    11) thunar >/dev/null 2>&1 & ;;
-    12) /usr/local/bin/ArcadifyBrowser >/dev/null 2>&1 & ;;
-    20) systemctl poweroff ;;
-  esac
-fi
-
 printf 'Arcadify maintenance mode is running.\n'
-printf 'Right-click the desktop for Launch Game, Firefox, Files, Archive Manager, Terminal, and Shutdown.\n'
+printf 'Right-click the desktop or use the launcher for Launch Game, Firefox, Files, Archive Manager, Terminal, and Shutdown.\n'
 
 while true; do
-  sleep 3600
+  if [[ -e "${RequestFile}" ]]; then
+    rm -f "${RequestFile}"
+    exit 0
+  fi
+
+  if command -v xmessage >/dev/null 2>&1; then
+    Status=0
+    xmessage -center -buttons "Launch Game:0,Terminal:10,Files:11,Firefox:12,Shutdown:20" \
+      "Arcadify maintenance mode" || Status="$?"
+
+    case "${Status}" in
+      0)
+        exit 0
+        ;;
+      10)
+        xfce4-terminal >/dev/null 2>&1 &
+        ;;
+      11)
+        thunar >/dev/null 2>&1 &
+        ;;
+      12)
+        /usr/local/bin/ArcadifyBrowser >/dev/null 2>&1 &
+        ;;
+      20)
+        systemctl poweroff
+        ;;
+    esac
+  fi
+
+  sleep 1
 done
+SCRIPT
+
+  BackupFileBeforeWrite /usr/local/bin/ArcadifyRequestLaunch
+  cat >/usr/local/bin/ArcadifyRequestLaunch <<'SCRIPT'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+RequestFile="${XDG_RUNTIME_DIR:-/tmp}/ArcadifyLaunchGame"
+
+touch "${RequestFile}"
+pkill -u "$(id -u)" -x xmessage >/dev/null 2>&1 || true
 SCRIPT
 
   BackupFileBeforeWrite /usr/local/bin/ArcadifyBrowser
@@ -363,8 +408,27 @@ fi
 
 export DISPLAY="${DISPLAY:-:0}"
 
-unclutter -idle 2 >/dev/null 2>&1 &
-openbox >/dev/null 2>&1 &
+if command -v xsetroot >/dev/null 2>&1; then
+  xsetroot -solid black || true
+  xsetroot -cursor /etc/Arcadify/blank-cursor.xbm /etc/Arcadify/blank-cursor-mask.xbm || true
+fi
+
+unclutter -idle 0.1 -root >/dev/null 2>&1 &
+
+StartOpenbox() {
+  local ConfigFile="${HOME:-}/.config/openbox/rc.xml"
+
+  while true; do
+    if [[ -r "${ConfigFile}" ]]; then
+      openbox --config-file "${ConfigFile}" >/dev/null 2>&1 || true
+    else
+      openbox >/dev/null 2>&1 || true
+    fi
+    sleep 1
+  done
+}
+
+StartOpenbox &
 
 if command -v xset >/dev/null 2>&1; then
   xset s off || true
@@ -383,7 +447,7 @@ while true; do
       systemctl poweroff
       ;;
     maintenance|*)
-      exec /usr/local/bin/ArcadifyMaintenance
+      /usr/local/bin/ArcadifyMaintenance || true
       ;;
   esac
 done
@@ -391,6 +455,7 @@ SCRIPT
 
   chmod 0755 /usr/local/bin/ArcadifyLaunchGame
   chmod 0755 /usr/local/bin/ArcadifyMaintenance
+  chmod 0755 /usr/local/bin/ArcadifyRequestLaunch
   chmod 0755 /usr/local/bin/ArcadifyBrowser
   chmod 0755 /usr/local/bin/ArcadifySession
 
@@ -420,7 +485,7 @@ InstallOpenboxConfig() {
   <menu id="root-menu" label="Arcadify">
     <item label="Launch Game">
       <action name="Execute">
-        <command>/usr/local/bin/ArcadifyLaunchGame</command>
+        <command>/usr/local/bin/ArcadifyRequestLaunch</command>
       </action>
     </item>
     <separator/>
@@ -454,7 +519,106 @@ InstallOpenboxConfig() {
 </openbox_menu>
 MENU
 
-  chown "${ArcadeUser}:${ArcadeUser}" "${HomeDirectory}/.config/openbox/menu.xml"
+  BackupFileBeforeWrite "${HomeDirectory}/.config/openbox/rc.xml"
+  cat >"${HomeDirectory}/.config/openbox/rc.xml" <<'RC'
+<?xml version="1.0" encoding="UTF-8"?>
+<openbox_config xmlns="http://openbox.org/3.4/rc"
+  xmlns:xi="http://www.w3.org/2001/XInclude">
+  <resistance>
+    <strength>10</strength>
+    <screen_edge_strength>20</screen_edge_strength>
+  </resistance>
+  <focus>
+    <focusNew>yes</focusNew>
+    <followMouse>no</followMouse>
+    <focusLast>yes</focusLast>
+    <underMouse>no</underMouse>
+    <focusDelay>200</focusDelay>
+    <raiseOnFocus>no</raiseOnFocus>
+  </focus>
+  <placement>
+    <policy>Smart</policy>
+    <center>yes</center>
+    <monitor>Primary</monitor>
+    <primaryMonitor>1</primaryMonitor>
+  </placement>
+  <theme>
+    <name>Clearlooks</name>
+    <titleLayout></titleLayout>
+    <keepBorder>no</keepBorder>
+    <animateIconify>no</animateIconify>
+  </theme>
+  <desktops>
+    <number>1</number>
+    <firstdesk>1</firstdesk>
+    <names>
+      <name>Arcadify</name>
+    </names>
+    <popupTime>0</popupTime>
+  </desktops>
+  <resize>
+    <drawContents>yes</drawContents>
+    <popupShow>Never</popupShow>
+  </resize>
+  <keyboard>
+    <chainQuitKey>C-g</chainQuitKey>
+  </keyboard>
+  <mouse>
+    <context name="Root">
+      <mousebind button="Right" action="Press">
+        <action name="ShowMenu">
+          <menu>root-menu</menu>
+        </action>
+      </mousebind>
+    </context>
+    <context name="Frame">
+      <mousebind button="A-Left" action="Drag">
+        <action name="Move"/>
+      </mousebind>
+      <mousebind button="A-Right" action="Drag">
+        <action name="Resize"/>
+      </mousebind>
+    </context>
+  </mouse>
+  <menu>
+    <file>menu.xml</file>
+    <hideDelay>200</hideDelay>
+    <middle>no</middle>
+    <submenuShowDelay>100</submenuShowDelay>
+    <submenuHideDelay>400</submenuHideDelay>
+    <showIcons>no</showIcons>
+  </menu>
+  <applications>
+    <application class="Xmessage">
+      <decor>no</decor>
+    </application>
+    <application name="xmessage">
+      <decor>no</decor>
+    </application>
+  </applications>
+</openbox_config>
+RC
+
+  chown "${ArcadeUser}:${ArcadeUser}" "${HomeDirectory}/.config/openbox/menu.xml" "${HomeDirectory}/.config/openbox/rc.xml"
+
+  CreateDirectory "${HomeDirectory}/.config/xfce4/terminal" -m 0755 -o "${ArcadeUser}" -g "${ArcadeUser}"
+
+  BackupFileBeforeWrite "${HomeDirectory}/.config/xfce4/terminal/terminalrc"
+  cat >"${HomeDirectory}/.config/xfce4/terminal/terminalrc" <<'TERMINAL'
+[Configuration]
+FontName=Monospace 12
+MiscAlwaysShowTabs=FALSE
+MiscBell=FALSE
+MiscBordersDefault=TRUE
+MiscMenubarDefault=FALSE
+MiscToolbarDefault=FALSE
+ColorForeground=#E6EDF3
+ColorBackground=#0B1020
+ColorCursor=#E6EDF3
+ColorPalette=#0B1020;#F87171;#34D399;#FBBF24;#60A5FA;#C084FC;#22D3EE;#E6EDF3;#475569;#FCA5A5;#86EFAC;#FDE68A;#93C5FD;#D8B4FE;#67E8F9;#FFFFFF
+TERMINAL
+
+  chown "${ArcadeUser}:${ArcadeUser}" "${HomeDirectory}/.config/xfce4/terminal/terminalrc"
 }
 
 ConfigureAutologin() {
