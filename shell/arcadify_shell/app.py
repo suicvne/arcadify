@@ -166,20 +166,26 @@ class ArcadifyShell:
         active = blend(fill, option.accent, 0.22)
         tag = f"option:{option.action}"
 
-        rounded_rectangle(self.screen, x, y, x + width, y + height, 18 if large else 14, fill=fill, outline="", tags=(tag,))
-        self.screen.create_rectangle(x, y, x + 7, y + height, fill=option.accent, outline="", tags=(tag,))
+        accent_width = 7
+        text_offset = 90 if large else 50
+        icon_padding = 13 if large else 9
 
-        icon_size = 62 if large else 28
-        icon_x = x + (32 if large else 22)
+        rounded_rectangle(self.screen, x, y, x + width, y + height, 18 if large else 14, fill=fill, outline="", tags=(tag,))
+        self.screen.create_rectangle(x, y, x + accent_width, y + height, fill=option.accent, outline="", tags=(tag,))
+
+        icon_lane_width = text_offset - accent_width
+        icon_size = max(20, icon_lane_width - icon_padding * 2)
+        icon_x = x + accent_width + icon_lane_width / 2
         icon_y = y + height // 2
         self._draw_icon(option.icon, icon_x, icon_y, icon_size, option.accent, tag)
 
         title_font = tkfont.Font(family="Helvetica", size=20 if large else 13, weight="bold")
         body_font = tkfont.Font(family="Helvetica", size=12 if large else 10)
-        text_x = x + (90 if large else 50)
-        self.screen.create_text(text_x, y + (34 if large else 14), text=option.label, anchor="nw", fill=text_color, font=title_font, width=width - (110 if large else 62), tags=(tag,))
+        text_x = x + text_offset
+        text_width = width - text_offset - (20 if large else 12)
+        self.screen.create_text(text_x, y + (34 if large else 14), text=option.label, anchor="nw", fill=text_color, font=title_font, width=text_width, tags=(tag,))
         if large and option.description:
-            self.screen.create_text(text_x, y + 70, text=option.description, anchor="nw", fill=self.config.theme.muted, font=body_font, width=width - 116, tags=(tag,))
+            self.screen.create_text(text_x, y + 70, text=option.description, anchor="nw", fill=self.config.theme.muted, font=body_font, width=text_width, tags=(tag,))
 
         self.screen.tag_bind(tag, "<Button-1>", lambda _event, action=option.action: self._choose(action))
         self.screen.tag_bind(tag, "<Enter>", lambda _event, t=tag, c=active: self._set_option_fill(t, c))
@@ -187,7 +193,7 @@ class ArcadifyShell:
 
     def _draw_icon(self, name: str, cx: int, cy: int, size: int, color: str, tag: str) -> None:
         half = size // 2
-        stroke = max(3, size // 12)
+        stroke = max(2, round(size / 16))
         x0, y0, x1, y1 = cx - half, cy - half, cx + half, cy + half
         self.screen.create_oval(x0, y0, x1, y1, outline=color, width=stroke, tags=(tag,))
 

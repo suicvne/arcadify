@@ -94,7 +94,6 @@ def load_config() -> AppConfig:
         utility_text=parser.get("theme", "utility_text", fallback="#f8fafc"),
         focus=parser.get("theme", "focus", fallback="#fbbf24"),
     )
-
     options = []
     for section in parser.sections():
         if not section.startswith("option."):

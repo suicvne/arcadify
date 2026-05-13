@@ -32,4 +32,6 @@ For a non-fullscreen Linux smoke test, point it at the windowed config:
 ARCADIFY_SHELL_CONFIG=/Users/mike/git/arcadify/shell/Shell.dev.ini python3 -m arcadify_shell
 ```
 
+The built-in drawn icons are `play`, `globe`, `folder`, `archive`, `terminal`, `power`, and `logout`.
+
 The selected action is printed to stdout, then the process exits. The caller should branch on that action and launch programs, log out, or power off.
