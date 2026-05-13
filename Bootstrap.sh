@@ -19,8 +19,6 @@ RequiredPackages=(
   thunar
   file-roller
   xfce4-terminal
-  pulseaudio
-  pipewire
   unclutter
   x11-utils
   x11-xserver-utils
