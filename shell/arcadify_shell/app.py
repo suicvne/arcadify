@@ -119,21 +119,24 @@ class ArcadifyShell:
         subheading_font = tkfont.Font(family="Helvetica", size=max(13, min(20, width // 64)))
         clock_font = tkfont.Font(family="Helvetica", size=max(12, min(18, width // 80)))
 
-        left = panel_x0 + max(32, width // 24)
+        content_inset = max(32, width // 24)
+        left = panel_x0 + content_inset
+        right = panel_x1 - content_inset
         top = panel_y0 + max(28, height // 22)
         self.screen.create_text(left, top, text=self.config.window.heading, anchor="nw", fill=self.config.theme.text, font=heading_font)
         self.screen.create_text(left, top + heading_font.metrics("linespace") + 8, text=self.config.window.subheading, anchor="nw", fill=self.config.theme.muted, font=subheading_font)
 
         if self.config.window.show_clock:
-            self.screen.create_text(panel_x1 - 36, top + 4, text=datetime.now().strftime("%I:%M %p").lstrip("0"), anchor="ne", fill=self.config.theme.muted, font=clock_font)
+            self.screen.create_text(right, top + 4, text=datetime.now().strftime("%I:%M %p").lstrip("0"), anchor="ne", fill=self.config.theme.muted, font=clock_font)
 
         primary_options = [option for option in self.config.options if option.kind != "utility"]
         utility_options = [option for option in self.config.options if option.kind == "utility"]
         grid_top = top + heading_font.metrics("linespace") + subheading_font.metrics("linespace") + 44
         utility_height = 80 if utility_options else 0
         grid_bottom = panel_y1 - max(28, height // 28) - utility_height
-        self._draw_primary_options(primary_options, left, grid_top, panel_x1 - left, max(160, grid_bottom - grid_top))
-        self._draw_utility_options(utility_options, left, panel_y1 - 84, panel_x1 - left, 56)
+        content_width = right - left
+        self._draw_primary_options(primary_options, left, grid_top, content_width, max(160, grid_bottom - grid_top))
+        self._draw_utility_options(utility_options, left, panel_y1 - 84, content_width, 56)
 
     def _draw_primary_options(self, options: list[OptionConfig], x: int, y: int, width: int, height: int) -> None:
         columns = 3 if width >= 900 and len(options) > 2 else 2
