@@ -169,6 +169,14 @@ RestoreFromManifest() {
   CleanupInstallState
 }
 
+StopArcadifyProcesses() {
+  if id "${ArcadeUser}" >/dev/null 2>&1; then
+    pkill -u "${ArcadeUser}" -x unclutter >/dev/null 2>&1 || true
+  else
+    pkill -x unclutter >/dev/null 2>&1 || true
+  fi
+}
+
 RemoveArcadifyFiles() {
   RemoveFileIfPresent /usr/local/bin/ArcadifySession
   RemoveFileIfPresent /usr/local/bin/ArcadifyLaunchGame
@@ -240,6 +248,7 @@ main() {
     RemoveOpenboxMenu
   fi
 
+  StopArcadifyProcesses
   RemoveUserIfRequested
   printf 'Arcadify uninstall complete.\n'
 }
