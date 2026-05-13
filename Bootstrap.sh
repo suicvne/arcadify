@@ -650,9 +650,24 @@ ConfigureAutologin() {
   printf 'Arcadify: configuring LightDM autologin...\n'
   CreateDirectory /etc/lightdm/lightdm.conf.d -m 0755
 
+  if [[ -f /etc/lightdm/lightdm.conf ]] && grep -Eq '^[[:space:]]*autologin-user[[:space:]]*=' /etc/lightdm/lightdm.conf; then
+    printf 'Arcadify: removing autologin-user from /etc/lightdm/lightdm.conf so Arcadify can choose %s from 99-Arcadify.conf.\n' "${ArcadeUser}"
+    BackupFileBeforeWrite /etc/lightdm/lightdm.conf
+    sed -i '/^[[:space:]]*autologin-user[[:space:]]*=/d' /etc/lightdm/lightdm.conf
+  fi
+
+  BackupFileBeforeWrite /etc/lightdm/lightdm.conf.d/50-Arcadify.conf
+  rm -f /etc/lightdm/lightdm.conf.d/50-Arcadify.conf
+
   BackupFileBeforeWrite /etc/lightdm/lightdm.conf.d/99-Arcadify.conf
   cat >/etc/lightdm/lightdm.conf.d/99-Arcadify.conf <<CONFIG
 [Seat:*]
+autologin-user=${ArcadeUser}
+autologin-user-timeout=0
+autologin-session=Arcadify
+user-session=Arcadify
+
+[SeatDefaults]
 autologin-user=${ArcadeUser}
 autologin-user-timeout=0
 autologin-session=Arcadify
@@ -692,7 +707,9 @@ Installed:
   /home/${ArcadeUser}/.config/xfce4/terminal/terminalrc
 
 Next:
+  If /etc/lightdm/lightdm.conf had autologin-user set, Arcadify removed only that setting after backing up the file.
   Reboot to enter Arcadify automatically if LightDM autologin was enabled.
+  To verify LightDM autologin before rebooting, run: lightdm --show-config
   Run ./Uninstall.sh later to remove Arcadify's system files.
 NEXT
 }

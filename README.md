@@ -92,6 +92,8 @@ If the file already existed, Arcadify stores a copy in:
 
 If the file did not exist, the manifest records that too. Re-running `Bootstrap.sh` keeps the original pre-Arcadify backups instead of backing up Arcadify over itself, so you can iterate on the game command and settings cleanly.
 
+If `/etc/lightdm/lightdm.conf` exists and contains an `autologin-user=` setting, Arcadify backs up that file and removes only that setting. This prevents the main LightDM config from overriding Arcadify's `/etc/lightdm/lightdm.conf.d/99-Arcadify.conf` autologin user.
+
 `Uninstall.sh` restores existing files, removes files Arcadify created, restores the previous systemd default target, restores common display-manager pointers touched by LightDM setup, and removes directories Arcadify created when they are empty.
 
 Packages installed with `apt-get` are intentionally not removed. Other sessions or users may rely on those packages.
