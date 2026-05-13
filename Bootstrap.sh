@@ -11,6 +11,7 @@ ConfigDirectory="/etc/Arcadify"
 StateDirectory="/var/lib/Arcadify"
 ManifestFile="${StateDirectory}/InstallManifest.tsv"
 BackupDirectory="${StateDirectory}/Backups"
+SourceDirectory="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 
 RequiredPackages=(
   python3
@@ -171,6 +172,41 @@ InstallSourceFile() {
   install -m "${Mode}" "${SourcePath}" "${DestinationPath}"
 }
 
+EscapeSedReplacement() {
+  printf '%s' "$1" | sed -e 's/[|&\]/\\&/g'
+}
+
+RenderTemplate() {
+  local SourcePath="$1"
+  local DestinationPath="$2"
+  local ArcadeUserValue
+  local GameCommandValue
+  local GameExitActionValue
+
+  [[ -f "${SourcePath}" ]] || Fail "missing template file: ${SourcePath}"
+
+  ArcadeUserValue="$(EscapeSedReplacement "$(ShellQuote "${ArcadeUser}")")"
+  GameCommandValue="$(EscapeSedReplacement "$(ShellQuote "${GameCommand}")")"
+  GameExitActionValue="$(EscapeSedReplacement "$(ShellQuote "${GameExitAction}")")"
+
+  sed \
+    -e "s|@ARCADE_USER@|$(EscapeSedReplacement "${ArcadeUser}")|g" \
+    -e "s|@ARCADE_USER_QUOTED@|${ArcadeUserValue}|g" \
+    -e "s|@GAME_COMMAND_QUOTED@|${GameCommandValue}|g" \
+    -e "s|@GAME_EXIT_ACTION_QUOTED@|${GameExitActionValue}|g" \
+    "${SourcePath}" >"${DestinationPath}"
+}
+
+InstallTemplateFile() {
+  local TemplatePath="$1"
+  local DestinationPath="$2"
+  local Mode="${3:-0644}"
+
+  BackupFileBeforeWrite "${DestinationPath}"
+  RenderTemplate "${SourceDirectory}/templates/${TemplatePath}.template" "${DestinationPath}"
+  chmod "${Mode}" "${DestinationPath}"
+}
+
 BackupFileBeforeWrite() {
   local Path="$1"
   local BackupName
@@ -272,10 +308,7 @@ CreateArcadeUser() {
 }
 
 InstallSystemFiles() {
-  local BootstrapDirectory
-
   printf 'Arcadify: installing system files...\n'
-  BootstrapDirectory="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 
   CreateDirectory "${ConfigDirectory}" -m 0755
   CreateDirectory /opt/Arcadify -m 0755
@@ -286,285 +319,32 @@ InstallSystemFiles() {
   CreateDirectory /usr/local/bin -m 0755
   CreateDirectory /usr/share/xsessions -m 0755
 
-  InstallSourceFile "${BootstrapDirectory}/shell/pyproject.toml" /opt/Arcadify/shell/pyproject.toml 0644
-  InstallSourceFile "${BootstrapDirectory}/shell/README.md" /opt/Arcadify/shell/README.md 0644
-  InstallSourceFile "${BootstrapDirectory}/shell/arcadify_shell/__init__.py" /opt/Arcadify/shell/arcadify_shell/__init__.py 0644
-  InstallSourceFile "${BootstrapDirectory}/shell/arcadify_shell/__main__.py" /opt/Arcadify/shell/arcadify_shell/__main__.py 0644
-  InstallSourceFile "${BootstrapDirectory}/shell/arcadify_shell/app.py" /opt/Arcadify/shell/arcadify_shell/app.py 0644
-  InstallSourceFile "${BootstrapDirectory}/shell/arcadify_shell/config.py" /opt/Arcadify/shell/arcadify_shell/config.py 0644
-  InstallSourceFile "${BootstrapDirectory}/shell/Shell.ini" "${ConfigDirectory}/Shell.ini" 0644
+  InstallSourceFile "${SourceDirectory}/shell/pyproject.toml" /opt/Arcadify/shell/pyproject.toml 0644
+  InstallSourceFile "${SourceDirectory}/shell/README.md" /opt/Arcadify/shell/README.md 0644
+  InstallSourceFile "${SourceDirectory}/shell/arcadify_shell/__init__.py" /opt/Arcadify/shell/arcadify_shell/__init__.py 0644
+  InstallSourceFile "${SourceDirectory}/shell/arcadify_shell/__main__.py" /opt/Arcadify/shell/arcadify_shell/__main__.py 0644
+  InstallSourceFile "${SourceDirectory}/shell/arcadify_shell/app.py" /opt/Arcadify/shell/arcadify_shell/app.py 0644
+  InstallSourceFile "${SourceDirectory}/shell/arcadify_shell/config.py" /opt/Arcadify/shell/arcadify_shell/config.py 0644
+  InstallSourceFile "${SourceDirectory}/shell/Shell.ini" "${ConfigDirectory}/Shell.ini" 0644
 
   local IconPath
   local IconName
-  for IconPath in "${BootstrapDirectory}"/shell/assets/icons/*.png; do
+  for IconPath in "${SourceDirectory}"/shell/assets/icons/*.png; do
     IconName="$(basename "${IconPath}")"
     InstallSourceFile "${IconPath}" "/opt/Arcadify/shell/assets/icons/${IconName}" 0644
   done
 
-  BackupFileBeforeWrite "${ConfigDirectory}/blank-cursor.xbm"
-  cat >"${ConfigDirectory}/blank-cursor.xbm" <<'CURSOR'
-#define blank_width 1
-#define blank_height 1
-static unsigned char blank_bits[] = {
-   0x00 };
-CURSOR
+  InstallTemplateFile etc/Arcadify/blank-cursor.xbm "${ConfigDirectory}/blank-cursor.xbm" 0644
+  InstallTemplateFile etc/Arcadify/blank-cursor-mask.xbm "${ConfigDirectory}/blank-cursor-mask.xbm" 0644
+  InstallTemplateFile etc/Arcadify/Arcadify.conf "${ConfigDirectory}/Arcadify.conf" 0644
+  InstallTemplateFile usr/local/bin/ArcadifyShell /usr/local/bin/ArcadifyShell 0755
+  InstallTemplateFile usr/local/bin/ArcadifyLaunchGame /usr/local/bin/ArcadifyLaunchGame 0755
+  InstallTemplateFile usr/local/bin/ArcadifyMaintenance /usr/local/bin/ArcadifyMaintenance 0755
+  InstallTemplateFile usr/local/bin/ArcadifyRequestLaunch /usr/local/bin/ArcadifyRequestLaunch 0755
+  InstallTemplateFile usr/local/bin/ArcadifyBrowser /usr/local/bin/ArcadifyBrowser 0755
+  InstallTemplateFile usr/local/bin/ArcadifySession /usr/local/bin/ArcadifySession 0755
 
-  BackupFileBeforeWrite "${ConfigDirectory}/blank-cursor-mask.xbm"
-  cat >"${ConfigDirectory}/blank-cursor-mask.xbm" <<'CURSOR'
-#define blank_width 1
-#define blank_height 1
-static unsigned char blank_bits[] = {
-   0x00 };
-CURSOR
-
-  BackupFileBeforeWrite "${ConfigDirectory}/Arcadify.conf"
-  cat >"${ConfigDirectory}/Arcadify.conf" <<CONFIG
-# Arcadify runtime configuration.
-# Re-run Bootstrap.sh or edit this file as root to change the launched game.
-ArcadeUser=$(ShellQuote "${ArcadeUser}")
-GameCommand=$(ShellQuote "${GameCommand}")
-GameExitAction=$(ShellQuote "${GameExitAction}")
-CONFIG
-
-  BackupFileBeforeWrite /usr/local/bin/ArcadifyShell
-  cat >/usr/local/bin/ArcadifyShell <<'SCRIPT'
-#!/usr/bin/env bash
-set -Eeuo pipefail
-
-export ARCADIFY_SHELL_CONFIG="${ARCADIFY_SHELL_CONFIG:-/etc/Arcadify/Shell.ini}"
-cd /opt/Arcadify/shell
-exec python3 -m arcadify_shell
-SCRIPT
-
-  BackupFileBeforeWrite /usr/local/bin/ArcadifyLaunchGame
-  cat >/usr/local/bin/ArcadifyLaunchGame <<'SCRIPT'
-#!/usr/bin/env bash
-set -Eeuo pipefail
-
-ConfigFile="/etc/Arcadify/Arcadify.conf"
-
-if [[ -r "${ConfigFile}" ]]; then
-  # shellcheck source=/etc/Arcadify/Arcadify.conf
-  source "${ConfigFile}"
-else
-  printf 'Arcadify: missing %s\n' "${ConfigFile}" >&2
-  exit 1
-fi
-
-if [[ -z "${GameCommand:-}" ]]; then
-  printf 'Arcadify: GameCommand is empty.\n' >&2
-  exit 1
-fi
-
-exec bash -lc "${GameCommand}"
-SCRIPT
-
-  BackupFileBeforeWrite /usr/local/bin/ArcadifyMaintenance
-  cat >/usr/local/bin/ArcadifyMaintenance <<'SCRIPT'
-#!/usr/bin/env bash
-set -Eeuo pipefail
-
-export DISPLAY="${DISPLAY:-:0}"
-
-RequestFile="${XDG_RUNTIME_DIR:-/tmp}/ArcadifyLaunchGame"
-
-rm -f "${RequestFile}"
-openbox --reconfigure >/dev/null 2>&1 || true
-
-printf 'Arcadify maintenance mode is running.\n'
-printf 'Right-click the desktop or use the launcher for Launch Game, Firefox, Files, Archive Manager, Terminal, and Shutdown.\n'
-
-LaunchMaintenanceApp() {
-  local process_pattern="$1"
-  shift
-
-  "$@" >/dev/null 2>&1 &
-  local launch_pid="$!"
-
-  wait "${launch_pid}" || true
-
-  while pgrep -u "$(id -u)" -f "${process_pattern}" >/dev/null 2>&1; do
-    if [[ -e "${RequestFile}" ]]; then
-      rm -f "${RequestFile}"
-      exit 0
-    fi
-
-    sleep 1
-  done
-}
-
-while true; do
-  if [[ -e "${RequestFile}" ]]; then
-    rm -f "${RequestFile}"
-    exit 0
-  fi
-
-  Action="$(/usr/local/bin/ArcadifyShell || true)"
-
-  case "${Action}" in
-    launch_game)
-      exit 0
-      ;;
-    terminal)
-      LaunchMaintenanceApp 'xfce4-terminal' xfce4-terminal
-      ;;
-    files)
-      LaunchMaintenanceApp 'thunar' thunar
-      ;;
-    browser)
-      LaunchMaintenanceApp 'firefox|firefox-esr|x-www-browser' /usr/local/bin/ArcadifyBrowser
-      ;;
-    archive_manager)
-      LaunchMaintenanceApp 'file-roller' file-roller
-      ;;
-    shutdown)
-      systemctl poweroff
-      ;;
-    logout)
-      loginctl terminate-user "$USER"
-      ;;
-  esac
-
-  sleep 1
-done
-SCRIPT
-
-  BackupFileBeforeWrite /usr/local/bin/ArcadifyRequestLaunch
-  cat >/usr/local/bin/ArcadifyRequestLaunch <<'SCRIPT'
-#!/usr/bin/env bash
-set -Eeuo pipefail
-
-RequestFile="${XDG_RUNTIME_DIR:-/tmp}/ArcadifyLaunchGame"
-
-touch "${RequestFile}"
-pkill -u "$(id -u)" -f "python3 -m arcadify_shell" >/dev/null 2>&1 || true
-SCRIPT
-
-  BackupFileBeforeWrite /usr/local/bin/ArcadifyBrowser
-  cat >/usr/local/bin/ArcadifyBrowser <<'SCRIPT'
-#!/usr/bin/env bash
-set -Eeuo pipefail
-
-if command -v firefox >/dev/null 2>&1; then
-  exec firefox "$@"
-fi
-
-if command -v firefox-esr >/dev/null 2>&1; then
-  exec firefox-esr "$@"
-fi
-
-if command -v x-www-browser >/dev/null 2>&1; then
-  exec x-www-browser "$@"
-fi
-
-printf 'Arcadify: no supported browser command found.\n' >&2
-exit 1
-SCRIPT
-
-  BackupFileBeforeWrite /usr/local/bin/ArcadifySession
-  cat >/usr/local/bin/ArcadifySession <<'SCRIPT'
-#!/usr/bin/env bash
-set -Eeuo pipefail
-
-ConfigFile="/etc/Arcadify/Arcadify.conf"
-
-if [[ -r "${ConfigFile}" ]]; then
-  # shellcheck source=/etc/Arcadify/Arcadify.conf
-  source "${ConfigFile}"
-fi
-
-CurrentUser="$(id -un)"
-
-if [[ -n "${ArcadeUser:-}" && "${CurrentUser}" != "${ArcadeUser}" ]]; then
-  Message="Arcadify is configured for user ${ArcadeUser}, but this session is running as ${CurrentUser}."
-  printf 'Arcadify: %s\n' "${Message}" >&2
-
-  exit 1
-fi
-
-ArcadeHome="$(getent passwd "${ArcadeUser:-${CurrentUser}}" | cut -d: -f6 || true)"
-if [[ -n "${ArcadeHome}" ]]; then
-  export HOME="${ArcadeHome}"
-fi
-
-export DISPLAY="${DISPLAY:-:0}"
-
-if command -v xsetroot >/dev/null 2>&1; then
-  xsetroot -solid black || true
-  xsetroot -cursor /etc/Arcadify/blank-cursor.xbm /etc/Arcadify/blank-cursor-mask.xbm || true
-fi
-
-unclutter -idle 0.1 -root >/dev/null 2>&1 &
-
-StartOpenbox() {
-  local ConfigFile="${HOME:-}/.config/openbox/rc.xml"
-
-  while true; do
-    if [[ -r "${ConfigFile}" ]]; then
-      openbox --config-file "${ConfigFile}" >/dev/null 2>&1 || true
-    else
-      openbox >/dev/null 2>&1 || true
-    fi
-    sleep 1
-  done
-}
-
-WaitForOpenbox() {
-  local Attempt
-
-  for Attempt in {1..50}; do
-    if openbox --reconfigure >/dev/null 2>&1; then
-      sleep 0.25
-      return 0
-    fi
-
-    sleep 0.1
-  done
-
-  printf 'Arcadify: Openbox did not become ready before game launch; continuing anyway.\n' >&2
-}
-
-StartOpenbox &
-WaitForOpenbox
-
-if command -v xset >/dev/null 2>&1; then
-  xset s off || true
-  xset -dpms || true
-  xset s noblank || true
-fi
-
-while true; do
-  /usr/local/bin/ArcadifyLaunchGame || true
-
-  case "${GameExitAction:-maintenance}" in
-    restart)
-      sleep 1
-      ;;
-    shutdown)
-      systemctl poweroff
-      ;;
-    maintenance|*)
-      /usr/local/bin/ArcadifyMaintenance || true
-      ;;
-  esac
-done
-SCRIPT
-
-  chmod 0755 /usr/local/bin/ArcadifyLaunchGame
-  chmod 0755 /usr/local/bin/ArcadifyShell
-  chmod 0755 /usr/local/bin/ArcadifyMaintenance
-  chmod 0755 /usr/local/bin/ArcadifyRequestLaunch
-  chmod 0755 /usr/local/bin/ArcadifyBrowser
-  chmod 0755 /usr/local/bin/ArcadifySession
-
-  BackupFileBeforeWrite /usr/share/xsessions/Arcadify.desktop
-  cat >/usr/share/xsessions/Arcadify.desktop <<'DESKTOP'
-[Desktop Entry]
-Name=Arcadify
-Comment=Boot directly into an arcade game
-Exec=/usr/local/bin/ArcadifySession
-Type=Application
-DESKTOP
+  InstallTemplateFile usr/share/xsessions/Arcadify.desktop /usr/share/xsessions/Arcadify.desktop 0644
 }
 
 InstallOpenboxConfig() {
@@ -578,171 +358,15 @@ InstallOpenboxConfig() {
   CreateDirectory "${HomeDirectory}/.config/openbox" -m 0755 -o "${ArcadeUser}" -g "${ArcadeUser}"
   chown "${ArcadeUser}:${ArcadeUser}" "${HomeDirectory}/.config" "${HomeDirectory}/.config/openbox"
 
-  BackupFileBeforeWrite "${HomeDirectory}/.config/openbox/menu.xml"
-  cat >"${HomeDirectory}/.config/openbox/menu.xml" <<'MENU'
-<?xml version="1.0" encoding="UTF-8"?>
-<openbox_menu xmlns="http://openbox.org/3.4/menu">
-  <menu id="root-menu" label="Arcadify">
-    <item label="Launch Game">
-      <action name="Execute">
-        <command>/usr/local/bin/ArcadifyRequestLaunch</command>
-      </action>
-    </item>
-    <separator/>
-    <item label="Firefox">
-      <action name="Execute">
-        <command>/usr/local/bin/ArcadifyBrowser</command>
-      </action>
-    </item>
-    <item label="Files">
-      <action name="Execute">
-        <command>thunar</command>
-      </action>
-    </item>
-    <item label="Archive Manager">
-      <action name="Execute">
-        <command>file-roller</command>
-      </action>
-    </item>
-    <item label="Terminal">
-      <action name="Execute">
-        <command>xfce4-terminal</command>
-      </action>
-    </item>
-    <separator/>
-    <item label="Shutdown">
-      <action name="Execute">
-        <command>systemctl poweroff</command>
-      </action>
-    </item>
-  </menu>
-</openbox_menu>
-MENU
-
-  BackupFileBeforeWrite "${HomeDirectory}/.config/openbox/rc.xml"
-  cat >"${HomeDirectory}/.config/openbox/rc.xml" <<'RC'
-<?xml version="1.0" encoding="UTF-8"?>
-<openbox_config xmlns="http://openbox.org/3.4/rc"
-  xmlns:xi="http://www.w3.org/2001/XInclude">
-  <resistance>
-    <strength>10</strength>
-    <screen_edge_strength>20</screen_edge_strength>
-  </resistance>
-  <focus>
-    <focusNew>yes</focusNew>
-    <followMouse>no</followMouse>
-    <focusLast>yes</focusLast>
-    <underMouse>no</underMouse>
-    <focusDelay>200</focusDelay>
-    <raiseOnFocus>no</raiseOnFocus>
-  </focus>
-  <placement>
-    <policy>Smart</policy>
-    <center>yes</center>
-    <monitor>Primary</monitor>
-    <primaryMonitor>1</primaryMonitor>
-  </placement>
-  <theme>
-    <name>Clearlooks</name>
-    <titleLayout></titleLayout>
-    <keepBorder>no</keepBorder>
-    <animateIconify>no</animateIconify>
-  </theme>
-  <desktops>
-    <number>1</number>
-    <firstdesk>1</firstdesk>
-    <names>
-      <name>Arcadify</name>
-    </names>
-    <popupTime>0</popupTime>
-  </desktops>
-  <resize>
-    <drawContents>yes</drawContents>
-    <popupShow>Never</popupShow>
-  </resize>
-  <keyboard>
-    <chainQuitKey>C-g</chainQuitKey>
-  </keyboard>
-  <mouse>
-    <context name="Root">
-      <mousebind button="Right" action="Press">
-        <action name="ShowMenu">
-          <menu>root-menu</menu>
-        </action>
-      </mousebind>
-    </context>
-    <context name="Frame">
-      <mousebind button="A-Left" action="Drag">
-        <action name="Move"/>
-      </mousebind>
-      <mousebind button="A-Right" action="Drag">
-        <action name="Resize"/>
-      </mousebind>
-    </context>
-    <context name="Titlebar">
-      <mousebind button="Left" action="Drag">
-        <action name="Move"/>
-      </mousebind>
-      <mousebind button="Left" action="DoubleClick">
-        <action name="ToggleMaximize"/>
-      </mousebind>
-      <mousebind button="Right" action="Press">
-        <action name="ShowMenu">
-          <menu>client-menu</menu>
-        </action>
-      </mousebind>
-    </context>
-    <context name="Close">
-      <mousebind button="Left" action="Click">
-        <action name="Close"/>
-      </mousebind>
-    </context>
-    <context name="Maximize">
-      <mousebind button="Left" action="Click">
-        <action name="ToggleMaximize"/>
-      </mousebind>
-    </context>
-    <context name="Iconify">
-      <mousebind button="Left" action="Click">
-        <action name="Iconify"/>
-      </mousebind>
-    </context>
-    <context name="AllDesktops">
-      <mousebind button="Left" action="Click">
-        <action name="ToggleOmnipresent"/>
-      </mousebind>
-    </context>
-  </mouse>
-  <menu>
-    <file>menu.xml</file>
-    <hideDelay>200</hideDelay>
-    <middle>no</middle>
-    <submenuShowDelay>100</submenuShowDelay>
-    <submenuHideDelay>400</submenuHideDelay>
-    <showIcons>no</showIcons>
-  </menu>
-</openbox_config>
-RC
+  InstallTemplateFile home/arcade/.config/openbox/menu.xml "${HomeDirectory}/.config/openbox/menu.xml" 0644
+  InstallTemplateFile home/arcade/.config/openbox/rc.xml "${HomeDirectory}/.config/openbox/rc.xml" 0644
 
   chown "${ArcadeUser}:${ArcadeUser}" "${HomeDirectory}/.config/openbox/menu.xml" "${HomeDirectory}/.config/openbox/rc.xml"
 
   CreateDirectory "${HomeDirectory}/.config/xfce4/terminal" -m 0755 -o "${ArcadeUser}" -g "${ArcadeUser}"
   chown "${ArcadeUser}:${ArcadeUser}" "${HomeDirectory}/.config/xfce4" "${HomeDirectory}/.config/xfce4/terminal"
 
-  BackupFileBeforeWrite "${HomeDirectory}/.config/xfce4/terminal/terminalrc"
-  cat >"${HomeDirectory}/.config/xfce4/terminal/terminalrc" <<'TERMINAL'
-[Configuration]
-FontName=Monospace 12
-MiscAlwaysShowTabs=FALSE
-MiscBell=FALSE
-MiscBordersDefault=TRUE
-MiscMenubarDefault=FALSE
-MiscToolbarDefault=FALSE
-ColorForeground=#E6EDF3
-ColorBackground=#0B1020
-ColorCursor=#E6EDF3
-ColorPalette=#0B1020;#F87171;#34D399;#FBBF24;#60A5FA;#C084FC;#22D3EE;#E6EDF3;#475569;#FCA5A5;#86EFAC;#FDE68A;#93C5FD;#D8B4FE;#67E8F9;#FFFFFF
-TERMINAL
+  InstallTemplateFile home/arcade/.config/xfce4/terminal/terminalrc "${HomeDirectory}/.config/xfce4/terminal/terminalrc" 0644
 
   chown "${ArcadeUser}:${ArcadeUser}" "${HomeDirectory}/.config/xfce4/terminal/terminalrc"
 }
@@ -765,27 +389,14 @@ ConfigureAutologin() {
   BackupFileBeforeWrite /etc/lightdm/lightdm.conf.d/50-Arcadify.conf
   rm -f /etc/lightdm/lightdm.conf.d/50-Arcadify.conf
 
-  BackupFileBeforeWrite /etc/lightdm/lightdm.conf.d/99-Arcadify.conf
-  cat >/etc/lightdm/lightdm.conf.d/99-Arcadify.conf <<CONFIG
-[Seat:*]
-autologin-user=${ArcadeUser}
-autologin-user-timeout=0
-autologin-session=Arcadify
-user-session=Arcadify
-
-[SeatDefaults]
-autologin-user=${ArcadeUser}
-autologin-user-timeout=0
-autologin-session=Arcadify
-user-session=Arcadify
-CONFIG
+  InstallTemplateFile etc/lightdm/lightdm.conf.d/99-Arcadify.conf /etc/lightdm/lightdm.conf.d/99-Arcadify.conf 0644
 
   if command -v systemctl >/dev/null 2>&1 && systemctl list-unit-files lightdm.service >/dev/null 2>&1; then
     systemctl enable -f lightdm.service >/dev/null 2>&1 || true
   fi
 
   if [[ -x /usr/sbin/lightdm ]]; then
-    printf '/usr/sbin/lightdm\n' >/etc/X11/default-display-manager
+    InstallTemplateFile etc/X11/default-display-manager /etc/X11/default-display-manager 0644
   fi
 
   systemctl set-default graphical.target >/dev/null 2>&1 || true

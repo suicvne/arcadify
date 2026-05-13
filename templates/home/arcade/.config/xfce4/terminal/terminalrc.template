@@ -1,0 +1,11 @@
+[Configuration]
+FontName=Monospace 12
+MiscAlwaysShowTabs=FALSE
+MiscBell=FALSE
+MiscBordersDefault=TRUE
+MiscMenubarDefault=FALSE
+MiscToolbarDefault=FALSE
+ColorForeground=#E6EDF3
+ColorBackground=#0B1020
+ColorCursor=#E6EDF3
+ColorPalette=#0B1020;#F87171;#34D399;#FBBF24;#60A5FA;#C084FC;#22D3EE;#E6EDF3;#475569;#FCA5A5;#86EFAC;#FDE68A;#93C5FD;#D8B4FE;#67E8F9;#FFFFFF

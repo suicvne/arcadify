@@ -1,0 +1,5 @@
+# Arcadify runtime configuration.
+# Re-run Bootstrap.sh or edit this file as root to change the launched game.
+ArcadeUser=@ARCADE_USER_QUOTED@
+GameCommand=@GAME_COMMAND_QUOTED@
+GameExitAction=@GAME_EXIT_ACTION_QUOTED@

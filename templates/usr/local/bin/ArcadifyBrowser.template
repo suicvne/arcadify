@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+if command -v firefox >/dev/null 2>&1; then
+  exec firefox "$@"
+fi
+
+if command -v firefox-esr >/dev/null 2>&1; then
+  exec firefox-esr "$@"
+fi
+
+if command -v x-www-browser >/dev/null 2>&1; then
+  exec x-www-browser "$@"
+fi
+
+printf 'Arcadify: no supported browser command found.\n' >&2
+exit 1

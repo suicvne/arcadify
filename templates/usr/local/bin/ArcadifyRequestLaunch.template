@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+RequestFile="${XDG_RUNTIME_DIR:-/tmp}/ArcadifyLaunchGame"
+
+touch "${RequestFile}"
+pkill -u "$(id -u)" -f "python3 -m arcadify_shell" >/dev/null 2>&1 || true
