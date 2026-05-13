@@ -172,15 +172,26 @@ RestoreFromManifest() {
 RemoveArcadifyFiles() {
   RemoveFileIfPresent /usr/local/bin/ArcadifySession
   RemoveFileIfPresent /usr/local/bin/ArcadifyLaunchGame
+  RemoveFileIfPresent /usr/local/bin/ArcadifyShell
   RemoveFileIfPresent /usr/local/bin/ArcadifyRequestLaunch
   RemoveFileIfPresent /usr/local/bin/ArcadifyMaintenance
   RemoveFileIfPresent /usr/local/bin/ArcadifyBrowser
   RemoveFileIfPresent /usr/share/xsessions/Arcadify.desktop
+  RemoveFileIfPresent /opt/Arcadify/shell/arcadify_shell/__init__.py
+  RemoveFileIfPresent /opt/Arcadify/shell/arcadify_shell/__main__.py
+  RemoveFileIfPresent /opt/Arcadify/shell/arcadify_shell/app.py
+  RemoveFileIfPresent /opt/Arcadify/shell/arcadify_shell/config.py
+  RemoveFileIfPresent /opt/Arcadify/shell/pyproject.toml
+  RemoveFileIfPresent /opt/Arcadify/shell/README.md
   RemoveFileIfPresent /etc/Arcadify/blank-cursor.xbm
   RemoveFileIfPresent /etc/Arcadify/blank-cursor-mask.xbm
   RemoveFileIfPresent /etc/lightdm/lightdm.conf.d/99-Arcadify.conf
   RemoveFileIfPresent /etc/lightdm/lightdm.conf.d/50-Arcadify.conf
+  RemoveFileIfPresent /etc/Arcadify/Shell.ini
   RemoveFileIfPresent /etc/Arcadify/Arcadify.conf
+  RemoveDirectoryIfEmpty /opt/Arcadify/shell/arcadify_shell
+  RemoveDirectoryIfEmpty /opt/Arcadify/shell
+  RemoveDirectoryIfEmpty /opt/Arcadify
   RemoveDirectoryIfEmpty /etc/Arcadify
 }
 

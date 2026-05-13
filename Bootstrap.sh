@@ -13,6 +13,8 @@ ManifestFile="${StateDirectory}/InstallManifest.tsv"
 BackupDirectory="${StateDirectory}/Backups"
 
 RequiredPackages=(
+  python3
+  python3-tk
   xorg
   openbox
   lightdm
@@ -20,7 +22,6 @@ RequiredPackages=(
   file-roller
   xfce4-terminal
   unclutter
-  x11-utils
   x11-xserver-utils
 )
 
@@ -158,6 +159,17 @@ CreateDirectory() {
   install -d "$@" "${Path}"
 }
 
+InstallSourceFile() {
+  local SourcePath="$1"
+  local DestinationPath="$2"
+  local Mode="${3:-0644}"
+
+  [[ -f "${SourcePath}" ]] || Fail "missing source file: ${SourcePath}"
+
+  BackupFileBeforeWrite "${DestinationPath}"
+  install -m "${Mode}" "${SourcePath}" "${DestinationPath}"
+}
+
 BackupFileBeforeWrite() {
   local Path="$1"
   local BackupName
@@ -259,11 +271,25 @@ CreateArcadeUser() {
 }
 
 InstallSystemFiles() {
+  local BootstrapDirectory
+
   printf 'Arcadify: installing system files...\n'
+  BootstrapDirectory="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 
   CreateDirectory "${ConfigDirectory}" -m 0755
+  CreateDirectory /opt/Arcadify -m 0755
+  CreateDirectory /opt/Arcadify/shell -m 0755
+  CreateDirectory /opt/Arcadify/shell/arcadify_shell -m 0755
   CreateDirectory /usr/local/bin -m 0755
   CreateDirectory /usr/share/xsessions -m 0755
+
+  InstallSourceFile "${BootstrapDirectory}/shell/pyproject.toml" /opt/Arcadify/shell/pyproject.toml 0644
+  InstallSourceFile "${BootstrapDirectory}/shell/README.md" /opt/Arcadify/shell/README.md 0644
+  InstallSourceFile "${BootstrapDirectory}/shell/arcadify_shell/__init__.py" /opt/Arcadify/shell/arcadify_shell/__init__.py 0644
+  InstallSourceFile "${BootstrapDirectory}/shell/arcadify_shell/__main__.py" /opt/Arcadify/shell/arcadify_shell/__main__.py 0644
+  InstallSourceFile "${BootstrapDirectory}/shell/arcadify_shell/app.py" /opt/Arcadify/shell/arcadify_shell/app.py 0644
+  InstallSourceFile "${BootstrapDirectory}/shell/arcadify_shell/config.py" /opt/Arcadify/shell/arcadify_shell/config.py 0644
+  InstallSourceFile "${BootstrapDirectory}/shell/Shell.ini" "${ConfigDirectory}/Shell.ini" 0644
 
   BackupFileBeforeWrite "${ConfigDirectory}/blank-cursor.xbm"
   cat >"${ConfigDirectory}/blank-cursor.xbm" <<'CURSOR'
@@ -289,6 +315,16 @@ ArcadeUser=$(ShellQuote "${ArcadeUser}")
 GameCommand=$(ShellQuote "${GameCommand}")
 GameExitAction=$(ShellQuote "${GameExitAction}")
 CONFIG
+
+  BackupFileBeforeWrite /usr/local/bin/ArcadifyShell
+  cat >/usr/local/bin/ArcadifyShell <<'SCRIPT'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+export ARCADIFY_SHELL_CONFIG="${ARCADIFY_SHELL_CONFIG:-/etc/Arcadify/Shell.ini}"
+cd /opt/Arcadify/shell
+exec python3 -m arcadify_shell
+SCRIPT
 
   BackupFileBeforeWrite /usr/local/bin/ArcadifyLaunchGame
   cat >/usr/local/bin/ArcadifyLaunchGame <<'SCRIPT'
@@ -334,31 +370,31 @@ while true; do
     exit 0
   fi
 
-  if command -v xmessage >/dev/null 2>&1; then
-    Status=0
-    xmessage -title "Arcadify maintenance mode" -center -buttons "Launch Game:0,Terminal:10,Files:11,Firefox:12,Shutdown:20,Logout:21" \
-      "Arcadify maintenance mode" || Status="$?"
+  Action="$(/usr/local/bin/ArcadifyShell || true)"
 
-    case "${Status}" in
-      0)
-        exit 0
-        ;;
-      10)
-        xfce4-terminal >/dev/null 2>&1 &
-        ;;
-      11)
-        thunar >/dev/null 2>&1 &
-        ;;
-      12)
-        /usr/local/bin/ArcadifyBrowser >/dev/null 2>&1 &
-        ;;
-      20)
-        systemctl poweroff
-        ;;
-      21)
-        loginctl terminate-user "$USER"
-    esac
-  fi
+  case "${Action}" in
+    launch_game)
+      exit 0
+      ;;
+    terminal)
+      xfce4-terminal >/dev/null 2>&1 &
+      ;;
+    files)
+      thunar >/dev/null 2>&1 &
+      ;;
+    browser)
+      /usr/local/bin/ArcadifyBrowser >/dev/null 2>&1 &
+      ;;
+    archive_manager)
+      file-roller >/dev/null 2>&1 &
+      ;;
+    shutdown)
+      systemctl poweroff
+      ;;
+    logout)
+      loginctl terminate-user "$USER"
+      ;;
+  esac
 
   sleep 1
 done
@@ -372,7 +408,7 @@ set -Eeuo pipefail
 RequestFile="${XDG_RUNTIME_DIR:-/tmp}/ArcadifyLaunchGame"
 
 touch "${RequestFile}"
-pkill -u "$(id -u)" -x xmessage >/dev/null 2>&1 || true
+pkill -u "$(id -u)" -f "python3 -m arcadify_shell" >/dev/null 2>&1 || true
 SCRIPT
 
   BackupFileBeforeWrite /usr/local/bin/ArcadifyBrowser
@@ -413,10 +449,6 @@ CurrentUser="$(id -un)"
 if [[ -n "${ArcadeUser:-}" && "${CurrentUser}" != "${ArcadeUser}" ]]; then
   Message="Arcadify is configured for user ${ArcadeUser}, but this session is running as ${CurrentUser}."
   printf 'Arcadify: %s\n' "${Message}" >&2
-
-  if command -v xmessage >/dev/null 2>&1; then
-    xmessage -center -title "Arcadify" "${Message}" || true
-  fi
 
   exit 1
 fi
@@ -474,6 +506,7 @@ done
 SCRIPT
 
   chmod 0755 /usr/local/bin/ArcadifyLaunchGame
+  chmod 0755 /usr/local/bin/ArcadifyShell
   chmod 0755 /usr/local/bin/ArcadifyMaintenance
   chmod 0755 /usr/local/bin/ArcadifyRequestLaunch
   chmod 0755 /usr/local/bin/ArcadifyBrowser
@@ -608,14 +641,6 @@ MENU
     <submenuHideDelay>400</submenuHideDelay>
     <showIcons>no</showIcons>
   </menu>
-  <applications>
-    <application class="Xmessage">
-      <decor>no</decor>
-    </application>
-    <application name="xmessage">
-      <decor>no</decor>
-    </application>
-  </applications>
 </openbox_config>
 RC
 
@@ -695,9 +720,12 @@ Installed:
   /var/lib/Arcadify/InstallManifest.tsv
   /usr/local/bin/ArcadifySession
   /usr/local/bin/ArcadifyLaunchGame
+  /usr/local/bin/ArcadifyShell
   /usr/local/bin/ArcadifyRequestLaunch
   /usr/local/bin/ArcadifyMaintenance
   /usr/local/bin/ArcadifyBrowser
+  /opt/Arcadify/shell/
+  ${ConfigDirectory}/Shell.ini
   /usr/share/xsessions/Arcadify.desktop
   /etc/lightdm/lightdm.conf.d/99-Arcadify.conf
   ${ConfigDirectory}/blank-cursor.xbm

@@ -8,6 +8,7 @@ The first version installs:
 - a custom `Arcadify` X session
 - LightDM configured as the display manager with autologin into that session
 - an Arcadify-controlled Openbox maintenance menu
+- a fullscreen, configuration-driven Arcadify Shell maintenance launcher
 - launch scripts for the game and fallback maintenance mode
 - a browser launcher that works with `firefox`, `firefox-esr`, or `x-www-browser`
 - a dark terminal profile for the arcade user
@@ -53,20 +54,25 @@ Maintenance mode uses Openbox and provides a right-click menu with:
 - Terminal
 - Shutdown
 
-If `xmessage` is available, Arcadify also shows a small maintenance launcher when the game exits.
+When the game exits, Arcadify shows a fullscreen maintenance launcher with large icon buttons for common actions and smaller utility buttons for shutdown/logout.
 Choosing Launch Game returns control to the main Arcadify session supervisor before relaunching the game, so exiting a relaunched game goes back to maintenance mode instead of ending the login session.
+
+The launcher is configured from `/etc/Arcadify/Shell.ini`. That file controls labels, icons, button grouping, colors, and an optional background image without requiring command-line arguments.
 
 ## Installed Files
 
 ```text
 /etc/Arcadify/Arcadify.conf
+/etc/Arcadify/Shell.ini
 /var/lib/Arcadify/InstallManifest.tsv
 /var/lib/Arcadify/Backups/
 /usr/local/bin/ArcadifySession
 /usr/local/bin/ArcadifyLaunchGame
+/usr/local/bin/ArcadifyShell
 /usr/local/bin/ArcadifyRequestLaunch
 /usr/local/bin/ArcadifyMaintenance
 /usr/local/bin/ArcadifyBrowser
+/opt/Arcadify/shell/
 /usr/share/xsessions/Arcadify.desktop
 /etc/lightdm/lightdm.conf.d/99-Arcadify.conf
 /etc/Arcadify/blank-cursor.xbm
