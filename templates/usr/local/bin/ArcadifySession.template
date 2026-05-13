@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+ConfigFile="/etc/Arcadify/Arcadify.conf"
+
+if [[ -r "${ConfigFile}" ]]; then
+  # shellcheck source=/etc/Arcadify/Arcadify.conf
+  source "${ConfigFile}"
+fi
+
+CurrentUser="$(id -un)"
+
+if [[ -n "${ArcadeUser:-}" && "${CurrentUser}" != "${ArcadeUser}" ]]; then
+  Message="Arcadify is configured for user ${ArcadeUser}, but this session is running as ${CurrentUser}."
+  printf 'Arcadify: %s\n' "${Message}" >&2
+
+  exit 1
+fi
+
+ArcadeHome="$(getent passwd "${ArcadeUser:-${CurrentUser}}" | cut -d: -f6 || true)"
+if [[ -n "${ArcadeHome}" ]]; then
+  export HOME="${ArcadeHome}"
+fi
+
+export DISPLAY="${DISPLAY:-:0}"
+
+if command -v xsetroot >/dev/null 2>&1; then
+  xsetroot -solid black || true
+  xsetroot -cursor /etc/Arcadify/blank-cursor.xbm /etc/Arcadify/blank-cursor-mask.xbm || true
+fi
+
+unclutter -idle 0.1 -root >/dev/null 2>&1 &
+
+StartOpenbox() {
+  local ConfigFile="${HOME:-}/.config/openbox/rc.xml"
+
+  while true; do
+    if [[ -r "${ConfigFile}" ]]; then
+      openbox --config-file "${ConfigFile}" >/dev/null 2>&1 || true
+    else
+      openbox >/dev/null 2>&1 || true
+    fi
+    sleep 1
+  done
+}
+
+WaitForOpenbox() {
+  local Attempt
+
+  for Attempt in {1..50}; do
+    if openbox --reconfigure >/dev/null 2>&1; then
+      sleep 0.25
+      return 0
+    fi
+
+    sleep 0.1
+  done
+
+  printf 'Arcadify: Openbox did not become ready before game launch; continuing anyway.\n' >&2
+}
+
+StartOpenbox &
+WaitForOpenbox
+
+if command -v xset >/dev/null 2>&1; then
+  xset s off || true
+  xset -dpms || true
+  xset s noblank || true
+fi
+
+while true; do
+  /usr/local/bin/ArcadifyLaunchGame || true
+
+  case "${GameExitAction:-maintenance}" in
+    restart)
+      sleep 1
+      ;;
+    shutdown)
+      systemctl poweroff
+      ;;
+    maintenance|*)
+      /usr/local/bin/ArcadifyMaintenance || true
+      ;;
+  esac
+done

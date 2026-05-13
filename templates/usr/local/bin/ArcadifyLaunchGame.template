@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+ConfigFile="/etc/Arcadify/Arcadify.conf"
+
+if [[ -r "${ConfigFile}" ]]; then
+  # shellcheck source=/etc/Arcadify/Arcadify.conf
+  source "${ConfigFile}"
+else
+  printf 'Arcadify: missing %s\n' "${ConfigFile}" >&2
+  exit 1
+fi
+
+if [[ -z "${GameCommand:-}" ]]; then
+  printf 'Arcadify: GameCommand is empty.\n' >&2
+  exit 1
+fi
+
+exec bash -lc "${GameCommand}"

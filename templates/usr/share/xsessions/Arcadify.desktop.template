@@ -1,0 +1,5 @@
+[Desktop Entry]
+Name=Arcadify
+Comment=Boot directly into an arcade game
+Exec=/usr/local/bin/ArcadifySession
+Type=Application
