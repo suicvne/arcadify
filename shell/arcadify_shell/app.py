@@ -222,7 +222,7 @@ class ArcadifyShell:
         active = blend(fill, option.accent, 0.22)
         tag = f"option:{option.action}"
 
-        accent_width = 7
+        accent_width = 16
         text_offset = 90 if large else 50
         icon_padding = 13 if large else 9
 
