@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+export ARCADIFY_SHELL_CONFIG="${ARCADIFY_SHELL_CONFIG:-/etc/Arcadify/Shell.ini}"
+cd /opt/Arcadify/shell
+exec python3 -m arcadify_shell

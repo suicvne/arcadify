@@ -1,0 +1,11 @@
+[Seat:*]
+autologin-user=@ARCADE_USER@
+autologin-user-timeout=0
+autologin-session=Arcadify
+user-session=Arcadify
+
+[SeatDefaults]
+autologin-user=@ARCADE_USER@
+autologin-user-timeout=0
+autologin-session=Arcadify
+user-session=Arcadify
