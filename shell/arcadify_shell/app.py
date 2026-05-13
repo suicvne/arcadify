@@ -185,7 +185,7 @@ class ArcadifyShell:
         title_font = tkfont.Font(family="Helvetica", size=20 if large else 13, weight="bold")
         body_font = tkfont.Font(family="Helvetica", size=12 if large else 10)
         text_x = x + text_offset
-        text_width = max(24, width - text_offset * 2)
+        text_width = max(24, width - text_offset - (20 if large else 12))
         self.screen.create_text(text_x, y + (34 if large else 14), text=option.label, anchor="nw", fill=text_color, font=title_font, width=text_width, tags=(tag,))
         if large and option.description:
             self.screen.create_text(text_x, y + 70, text=option.description, anchor="nw", fill=self.config.theme.muted, font=body_font, width=text_width, tags=(tag,))
