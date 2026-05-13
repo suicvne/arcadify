@@ -574,7 +574,9 @@ InstallOpenboxConfig() {
 
   printf 'Arcadify: installing Openbox menu for %s...\n' "${ArcadeUser}"
 
+  CreateDirectory "${HomeDirectory}/.config" -m 0755 -o "${ArcadeUser}" -g "${ArcadeUser}"
   CreateDirectory "${HomeDirectory}/.config/openbox" -m 0755 -o "${ArcadeUser}" -g "${ArcadeUser}"
+  chown "${ArcadeUser}:${ArcadeUser}" "${HomeDirectory}/.config" "${HomeDirectory}/.config/openbox"
 
   BackupFileBeforeWrite "${HomeDirectory}/.config/openbox/menu.xml"
   cat >"${HomeDirectory}/.config/openbox/menu.xml" <<'MENU'
@@ -692,6 +694,7 @@ RC
   chown "${ArcadeUser}:${ArcadeUser}" "${HomeDirectory}/.config/openbox/menu.xml" "${HomeDirectory}/.config/openbox/rc.xml"
 
   CreateDirectory "${HomeDirectory}/.config/xfce4/terminal" -m 0755 -o "${ArcadeUser}" -g "${ArcadeUser}"
+  chown "${ArcadeUser}:${ArcadeUser}" "${HomeDirectory}/.config/xfce4" "${HomeDirectory}/.config/xfce4/terminal"
 
   BackupFileBeforeWrite "${HomeDirectory}/.config/xfce4/terminal/terminalrc"
   cat >"${HomeDirectory}/.config/xfce4/terminal/terminalrc" <<'TERMINAL'
