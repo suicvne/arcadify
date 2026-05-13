@@ -336,7 +336,7 @@ while true; do
 
   if command -v xmessage >/dev/null 2>&1; then
     Status=0
-    xmessage -title "Arcadify maintenance mode" -center -buttons "Launch Game:0,Terminal:10,Files:11,Firefox:12,Shutdown:20" \
+    xmessage -title "Arcadify maintenance mode" -center -buttons "Launch Game:0,Terminal:10,Files:11,Firefox:12,Shutdown:20,Logout:21" \
       "Arcadify maintenance mode" || Status="$?"
 
     case "${Status}" in
@@ -355,6 +355,8 @@ while true; do
       20)
         systemctl poweroff
         ;;
+      21)
+        loginctl terminate-user "$USER"
     esac
   fi
 
