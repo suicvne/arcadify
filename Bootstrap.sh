@@ -280,6 +280,8 @@ InstallSystemFiles() {
   CreateDirectory /opt/Arcadify -m 0755
   CreateDirectory /opt/Arcadify/shell -m 0755
   CreateDirectory /opt/Arcadify/shell/arcadify_shell -m 0755
+  CreateDirectory /opt/Arcadify/shell/assets -m 0755
+  CreateDirectory /opt/Arcadify/shell/assets/icons -m 0755
   CreateDirectory /usr/local/bin -m 0755
   CreateDirectory /usr/share/xsessions -m 0755
 
@@ -290,6 +292,13 @@ InstallSystemFiles() {
   InstallSourceFile "${BootstrapDirectory}/shell/arcadify_shell/app.py" /opt/Arcadify/shell/arcadify_shell/app.py 0644
   InstallSourceFile "${BootstrapDirectory}/shell/arcadify_shell/config.py" /opt/Arcadify/shell/arcadify_shell/config.py 0644
   InstallSourceFile "${BootstrapDirectory}/shell/Shell.ini" "${ConfigDirectory}/Shell.ini" 0644
+
+  local IconPath
+  local IconName
+  for IconPath in "${BootstrapDirectory}"/shell/assets/icons/*.png; do
+    IconName="$(basename "${IconPath}")"
+    InstallSourceFile "${IconPath}" "/opt/Arcadify/shell/assets/icons/${IconName}" 0644
+  done
 
   BackupFileBeforeWrite "${ConfigDirectory}/blank-cursor.xbm"
   cat >"${ConfigDirectory}/blank-cursor.xbm" <<'CURSOR'

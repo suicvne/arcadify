@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from math import ceil
+from pathlib import Path
 import sys
 
 try:
@@ -20,6 +21,8 @@ class ArcadifyShell:
         self.config = config
         self.selected_action: str | None = None
         self.background_image: tk.PhotoImage | None = None
+        self.icon_images: dict[tuple[str, str], tk.PhotoImage] = {}
+        self.icon_directory = Path(__file__).resolve().parents[1] / "assets" / "icons"
 
         self.root.title(config.window.title)
         self.root.configure(bg=config.background.color)
@@ -180,7 +183,7 @@ class ArcadifyShell:
         icon_size = max(20, icon_lane_width - icon_padding * 2)
         icon_x = x + accent_width + icon_lane_width / 2
         icon_y = y + height // 2
-        self._draw_icon(option.icon, icon_x, icon_y, icon_size, option.accent, tag)
+        self._draw_icon(option.icon, icon_x, icon_y, icon_size, option.accent, tag, large=large)
 
         title_font = tkfont.Font(family="Helvetica", size=20 if large else 13, weight="bold")
         body_font = tkfont.Font(family="Helvetica", size=12 if large else 10)
@@ -194,7 +197,25 @@ class ArcadifyShell:
         self.screen.tag_bind(tag, "<Enter>", lambda _event, t=tag, c=active: self._set_option_fill(t, c))
         self.screen.tag_bind(tag, "<Leave>", lambda _event, t=tag, c=fill: self._set_option_fill(t, c))
 
-    def _draw_icon(self, name: str, cx: int, cy: int, size: int, color: str, tag: str) -> None:
+    def _draw_icon(self, name: str, cx: int, cy: int, size: int, color: str, tag: str, large: bool) -> None:
+        image = self._get_icon_image(name, large)
+        if image is None:
+            self._draw_canvas_icon(name, cx, cy, size, color, tag)
+            return
+
+        self.screen.create_image(cx, cy, image=image, tags=(tag,))
+
+    def _get_icon_image(self, name: str, large: bool) -> tk.PhotoImage | None:
+        variant = "large" if large else "small"
+        key = (name, variant)
+        if key not in self.icon_images:
+            path = self.icon_directory / f"{name}-{variant}.png"
+            if not path.is_file():
+                return None
+            self.icon_images[key] = tk.PhotoImage(file=str(path))
+        return self.icon_images[key]
+
+    def _draw_canvas_icon(self, name: str, cx: int, cy: int, size: int, color: str, tag: str) -> None:
         half = size // 2
         stroke = max(2, round(size / 16))
         x0, y0, x1, y1 = cx - half, cy - half, cx + half, cy + half

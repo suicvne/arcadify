@@ -189,6 +189,20 @@ RemoveArcadifyFiles() {
   RemoveFileIfPresent /opt/Arcadify/shell/arcadify_shell/__main__.py
   RemoveFileIfPresent /opt/Arcadify/shell/arcadify_shell/app.py
   RemoveFileIfPresent /opt/Arcadify/shell/arcadify_shell/config.py
+  RemoveFileIfPresent /opt/Arcadify/shell/assets/icons/archive-large.png
+  RemoveFileIfPresent /opt/Arcadify/shell/assets/icons/archive-small.png
+  RemoveFileIfPresent /opt/Arcadify/shell/assets/icons/folder-large.png
+  RemoveFileIfPresent /opt/Arcadify/shell/assets/icons/folder-small.png
+  RemoveFileIfPresent /opt/Arcadify/shell/assets/icons/globe-large.png
+  RemoveFileIfPresent /opt/Arcadify/shell/assets/icons/globe-small.png
+  RemoveFileIfPresent /opt/Arcadify/shell/assets/icons/logout-large.png
+  RemoveFileIfPresent /opt/Arcadify/shell/assets/icons/logout-small.png
+  RemoveFileIfPresent /opt/Arcadify/shell/assets/icons/play-large.png
+  RemoveFileIfPresent /opt/Arcadify/shell/assets/icons/play-small.png
+  RemoveFileIfPresent /opt/Arcadify/shell/assets/icons/power-large.png
+  RemoveFileIfPresent /opt/Arcadify/shell/assets/icons/power-small.png
+  RemoveFileIfPresent /opt/Arcadify/shell/assets/icons/terminal-large.png
+  RemoveFileIfPresent /opt/Arcadify/shell/assets/icons/terminal-small.png
   RemoveFileIfPresent /opt/Arcadify/shell/pyproject.toml
   RemoveFileIfPresent /opt/Arcadify/shell/README.md
   RemoveFileIfPresent /etc/Arcadify/blank-cursor.xbm
@@ -197,6 +211,8 @@ RemoveArcadifyFiles() {
   RemoveFileIfPresent /etc/lightdm/lightdm.conf.d/50-Arcadify.conf
   RemoveFileIfPresent /etc/Arcadify/Shell.ini
   RemoveFileIfPresent /etc/Arcadify/Arcadify.conf
+  RemoveDirectoryIfEmpty /opt/Arcadify/shell/assets/icons
+  RemoveDirectoryIfEmpty /opt/Arcadify/shell/assets
   RemoveDirectoryIfEmpty /opt/Arcadify/shell/arcadify_shell
   RemoveDirectoryIfEmpty /opt/Arcadify/shell
   RemoveDirectoryIfEmpty /opt/Arcadify
