@@ -336,7 +336,7 @@ while true; do
 
   if command -v xmessage >/dev/null 2>&1; then
     Status=0
-    xmessage -center -buttons "Launch Game:0,Terminal:10,Files:11,Firefox:12,Shutdown:20" \
+    xmessage -title "Arcadify maintenance mode" -center -buttons "Launch Game:0,Terminal:10,Files:11,Firefox:12,Shutdown:20" \
       "Arcadify maintenance mode" || Status="$?"
 
     case "${Status}" in
