@@ -509,7 +509,23 @@ StartOpenbox() {
   done
 }
 
+WaitForOpenbox() {
+  local Attempt
+
+  for Attempt in {1..50}; do
+    if openbox --reconfigure >/dev/null 2>&1; then
+      sleep 0.25
+      return 0
+    fi
+
+    sleep 0.1
+  done
+
+  printf 'Arcadify: Openbox did not become ready before game launch; continuing anyway.\n' >&2
+}
+
 StartOpenbox &
+WaitForOpenbox
 
 if command -v xset >/dev/null 2>&1; then
   xset s off || true
