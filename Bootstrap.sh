@@ -374,6 +374,25 @@ openbox --reconfigure >/dev/null 2>&1 || true
 printf 'Arcadify maintenance mode is running.\n'
 printf 'Right-click the desktop or use the launcher for Launch Game, Firefox, Files, Archive Manager, Terminal, and Shutdown.\n'
 
+LaunchMaintenanceApp() {
+  local process_pattern="$1"
+  shift
+
+  "$@" >/dev/null 2>&1 &
+  local launch_pid="$!"
+
+  wait "${launch_pid}" || true
+
+  while pgrep -u "$(id -u)" -f "${process_pattern}" >/dev/null 2>&1; do
+    if [[ -e "${RequestFile}" ]]; then
+      rm -f "${RequestFile}"
+      exit 0
+    fi
+
+    sleep 1
+  done
+}
+
 while true; do
   if [[ -e "${RequestFile}" ]]; then
     rm -f "${RequestFile}"
@@ -387,16 +406,16 @@ while true; do
       exit 0
       ;;
     terminal)
-      xfce4-terminal >/dev/null 2>&1 &
+      LaunchMaintenanceApp 'xfce4-terminal' xfce4-terminal
       ;;
     files)
-      thunar >/dev/null 2>&1 &
+      LaunchMaintenanceApp 'thunar' thunar
       ;;
     browser)
-      /usr/local/bin/ArcadifyBrowser >/dev/null 2>&1 &
+      LaunchMaintenanceApp 'firefox|firefox-esr|x-www-browser' /usr/local/bin/ArcadifyBrowser
       ;;
     archive_manager)
-      file-roller >/dev/null 2>&1 &
+      LaunchMaintenanceApp 'file-roller' file-roller
       ;;
     shutdown)
       systemctl poweroff
