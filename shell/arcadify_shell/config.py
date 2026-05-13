@@ -78,7 +78,7 @@ def load_config() -> AppConfig:
     )
     background = BackgroundConfig(
         color=parser.get("background", "color", fallback="#0f172a"),
-        image=parser.get("background", "image", fallback="").strip(),
+        image=_strip_optional_quotes(parser.get("background", "image", fallback="").strip()),
         image_mode=parser.get("background", "image_mode", fallback="cover").lower(),
         overlay=parser.get("background", "overlay", fallback="#07111f"),
         overlay_alpha=_bounded_float(parser.getfloat("background", "overlay_alpha", fallback=0.62), 0.0, 1.0),
@@ -146,3 +146,9 @@ def _find_config_path() -> Path:
 
 def _bounded_float(value: float, minimum: float, maximum: float) -> float:
     return min(max(value, minimum), maximum)
+
+
+def _strip_optional_quotes(value: str) -> str:
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
+        return value[1:-1]
+    return value

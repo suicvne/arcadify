@@ -12,6 +12,15 @@ except ModuleNotFoundError:
     tk = None
     tkfont = None
 
+try:
+    from PIL import Image
+    from PIL import ImageOps
+    from PIL import ImageTk
+except ModuleNotFoundError:
+    Image = None
+    ImageOps = None
+    ImageTk = None
+
 from .config import AppConfig, OptionConfig, load_config
 
 
@@ -32,6 +41,7 @@ class ArcadifyShell:
             self.root.after(100, lambda: self.root.attributes("-fullscreen", True))
         self.root.bind("<Escape>", lambda _event: None)
         self.root.bind("<Control-q>", lambda _event: self._choose("logout"))
+        self.warned_background_error = False
 
         self.screen = tk.Canvas(root, highlightthickness=0, bd=0, bg=config.background.color)
         self.screen.pack(fill="both", expand=True)
@@ -61,13 +71,15 @@ class ArcadifyShell:
         image_path = self.config.background.image
         if image_path:
             try:
-                source = tk.PhotoImage(file=image_path)
-                self.background_image = self._prepare_background_image(source, width, height)
+                self.background_image = self._load_background_image(image_path, width, height)
                 if self.config.background.image_mode == "tile":
                     self._tile_background(self.background_image, width, height)
                 else:
                     self.screen.create_image(width // 2, height // 2, image=self.background_image)
-            except tk.TclError:
+            except Exception as exc:
+                if not self.warned_background_error:
+                    print(f"Arcadify Shell: could not load background image {image_path!r}: {exc}", file=sys.stderr)
+                    self.warned_background_error = True
                 self._draw_gradient(width, height)
         else:
             self._draw_gradient(width, height)
@@ -84,6 +96,23 @@ class ArcadifyShell:
             y1 = int(height * (index + 1) / steps) + 1
             color = blend(top, bottom, index / max(steps - 1, 1))
             self.screen.create_rectangle(0, y0, width, y1, fill=color, outline="")
+
+    def _load_background_image(self, image_path: str, width: int, height: int) -> tk.PhotoImage:
+        if Image is not None and ImageOps is not None and ImageTk is not None:
+            image = Image.open(image_path)
+            mode = self.config.background.image_mode
+            if mode == "cover":
+                image = ImageOps.fit(image, (width, height), method=Image.Resampling.LANCZOS)
+            elif mode == "contain":
+                image = ImageOps.contain(image, (width, height), method=Image.Resampling.LANCZOS)
+            elif mode == "tile":
+                pass
+            elif mode != "center":
+                image = ImageOps.fit(image, (width, height), method=Image.Resampling.LANCZOS)
+            return ImageTk.PhotoImage(image)
+
+        source = tk.PhotoImage(file=image_path)
+        return self._prepare_background_image(source, width, height)
 
     def _prepare_background_image(self, image: tk.PhotoImage, width: int, height: int) -> tk.PhotoImage:
         mode = self.config.background.image_mode

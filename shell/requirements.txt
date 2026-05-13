@@ -1,5 +1,6 @@
 # Arcadify Shell has no pip-installable runtime dependencies.
 # It requires Python's Tk bindings from the operating system.
+# JPEG backgrounds also require Pillow's ImageTk system package.
 #
 # Debian/Ubuntu:
-#   sudo apt-get install python3 python3-tk
+#   sudo apt-get install python3 python3-tk python3-pil.imagetk

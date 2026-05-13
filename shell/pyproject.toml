@@ -8,5 +8,5 @@ requires-python = ">=3.9"
 arcadify-shell = "arcadify_shell.app:main"
 
 [tool.arcadify.system-dependencies]
-debian = ["python3", "python3-tk"]
-ubuntu = ["python3", "python3-tk"]
+debian = ["python3", "python3-tk", "python3-pil.imagetk"]
+ubuntu = ["python3", "python3-tk", "python3-pil.imagetk"]

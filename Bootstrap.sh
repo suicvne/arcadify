@@ -14,6 +14,7 @@ BackupDirectory="${StateDirectory}/Backups"
 
 RequiredPackages=(
   python3
+  python3-pil.imagetk
   python3-tk
   xorg
   openbox
