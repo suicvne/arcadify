@@ -1,0 +1,5 @@
+# Arcadify Shell has no pip-installable runtime dependencies.
+# It requires Python's Tk bindings from the operating system.
+#
+# Debian/Ubuntu:
+#   sudo apt-get install python3 python3-tk

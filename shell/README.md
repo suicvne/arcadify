@@ -10,6 +10,16 @@ $ARCADIFY_SHELL_CONFIG
 ./Shell.ini
 ```
 
+## Requirements
+
+Arcadify Shell uses Python's built-in `tkinter` module. On Debian/Ubuntu, `tkinter` is provided by the system package `python3-tk`, not by `pip`.
+
+```bash
+sudo apt-get install python3 python3-tk
+```
+
+`Bootstrap.sh` installs `python3` and `python3-tk` automatically unless package installation is skipped.
+
 Run it from this directory during development. On Linux this opens the same canvas-based launcher that Arcadify installs:
 
 ```bash

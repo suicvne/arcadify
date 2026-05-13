@@ -3,8 +3,13 @@ from __future__ import annotations
 from datetime import datetime
 from math import ceil
 import sys
-import tkinter as tk
-from tkinter import font as tkfont
+
+try:
+    import tkinter as tk
+    from tkinter import font as tkfont
+except ModuleNotFoundError:
+    tk = None
+    tkfont = None
 
 from .config import AppConfig, OptionConfig, load_config
 
@@ -259,6 +264,14 @@ def parse_hex(color: str) -> tuple[int, int, int]:
 
 
 def main() -> int:
+    if tk is None or tkfont is None:
+        print(
+            "Arcadify Shell: Python Tk support is not installed. "
+            "On Debian/Ubuntu, install the system package: sudo apt-get install python3-tk",
+            file=sys.stderr,
+        )
+        return 1
+
     try:
         config = load_config()
         root = tk.Tk()
