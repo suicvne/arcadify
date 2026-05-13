@@ -14,10 +14,12 @@ except ModuleNotFoundError:
 
 try:
     from PIL import Image
+    from PIL import ImageDraw
     from PIL import ImageOps
     from PIL import ImageTk
 except ModuleNotFoundError:
     Image = None
+    ImageDraw = None
     ImageOps = None
     ImageTk = None
 
@@ -30,6 +32,7 @@ class ArcadifyShell:
         self.config = config
         self.selected_action: str | None = None
         self.background_image: tk.PhotoImage | None = None
+        self.shape_images: list[tk.PhotoImage] = []
         self.icon_images: dict[tuple[str, str], tk.PhotoImage] = {}
         self.icon_directory = Path(__file__).resolve().parents[1] / "assets" / "icons"
 
@@ -64,6 +67,7 @@ class ArcadifyShell:
             return
 
         self.screen.delete("all")
+        self.shape_images = []
         self._draw_background(width, height)
         self._draw_panel(width, height)
 
@@ -147,13 +151,22 @@ class ArcadifyShell:
 
     def _draw_panel(self, width: int, height: int) -> None:
         margin = max(42, min(width, height) // 16)
-        panel_color = blend(self.config.background.color, self.config.theme.panel, self.config.theme.panel_alpha)
         panel_x0 = margin
         panel_y0 = margin
         panel_x1 = width - margin
         panel_y1 = height - margin
 
-        rounded_rectangle(self.screen, panel_x0, panel_y0, panel_x1, panel_y1, 28, fill=panel_color, outline="")
+        if not self._draw_translucent_rectangle(
+            panel_x0,
+            panel_y0,
+            panel_x1,
+            panel_y1,
+            radius=28,
+            color=self.config.theme.panel,
+            alpha=self.config.theme.panel_alpha,
+        ):
+            panel_color = blend(self.config.background.color, self.config.theme.panel, self.config.theme.panel_alpha)
+            rounded_rectangle(self.screen, panel_x0, panel_y0, panel_x1, panel_y1, 28, fill=panel_color, outline="")
 
         heading_font = tkfont.Font(family="Helvetica", size=max(28, min(52, width // 24)), weight="bold")
         subheading_font = tkfont.Font(family="Helvetica", size=max(13, min(20, width // 64)))
@@ -213,8 +226,29 @@ class ArcadifyShell:
         text_offset = 90 if large else 50
         icon_padding = 13 if large else 9
 
-        rounded_rectangle(self.screen, x, y, x + width, y + height, 18 if large else 14, fill=fill, outline="", tags=(tag,))
-        self.screen.create_rectangle(x, y, x + accent_width, y + height, fill=option.accent, outline="", tags=(tag,))
+        if self._draw_translucent_rectangle(
+            x,
+            y,
+            x + width,
+            y + height,
+            radius=18 if large else 14,
+            color=fill,
+            alpha=0.72 if large else 0.62,
+            tags=(tag,),
+        ):
+            self._draw_translucent_rectangle(
+                x,
+                y,
+                x + accent_width,
+                y + height,
+                radius=0,
+                color=option.accent,
+                alpha=0.92,
+                tags=(tag,),
+            )
+        else:
+            rounded_rectangle(self.screen, x, y, x + width, y + height, 18 if large else 14, fill=fill, outline="", tags=(tag,))
+            self.screen.create_rectangle(x, y, x + accent_width, y + height, fill=option.accent, outline="", tags=(tag,))
 
         icon_lane_width = text_offset - accent_width
         icon_size = max(20, icon_lane_width - icon_padding * 2)
@@ -233,6 +267,36 @@ class ArcadifyShell:
         self.screen.tag_bind(tag, "<Button-1>", lambda _event, action=option.action: self._choose(action))
         self.screen.tag_bind(tag, "<Enter>", lambda _event, t=tag, c=active: self._set_option_fill(t, c))
         self.screen.tag_bind(tag, "<Leave>", lambda _event, t=tag, c=fill: self._set_option_fill(t, c))
+
+    def _draw_translucent_rectangle(
+        self,
+        x0: int,
+        y0: int,
+        x1: int,
+        y1: int,
+        radius: int,
+        color: str,
+        alpha: float,
+        tags: tuple[str, ...] = (),
+    ) -> bool:
+        if Image is None or ImageDraw is None or ImageTk is None:
+            return False
+
+        width = max(1, int(x1 - x0))
+        height = max(1, int(y1 - y0))
+        red, green, blue = parse_hex(color)
+        image = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(image)
+        fill = (red, green, blue, max(0, min(255, round(alpha * 255))))
+        if radius > 0:
+            draw.rounded_rectangle((0, 0, width - 1, height - 1), radius=radius, fill=fill)
+        else:
+            draw.rectangle((0, 0, width - 1, height - 1), fill=fill)
+
+        photo = ImageTk.PhotoImage(image)
+        self.shape_images.append(photo)
+        self.screen.create_image(x0, y0, anchor="nw", image=photo, tags=tags)
+        return True
 
     def _draw_icon(self, name: str, cx: int, cy: int, size: int, color: str, tag: str, large: bool) -> None:
         image = self._get_icon_image(name, large)
@@ -284,7 +348,7 @@ class ArcadifyShell:
 
     def _set_option_fill(self, tag: str, color: str) -> None:
         items = self.screen.find_withtag(tag)
-        if items:
+        if items and "fill" in self.screen.itemconfigure(items[0]):
             self.screen.itemconfigure(items[0], fill=color)
 
     def _choose(self, action: str) -> None:
