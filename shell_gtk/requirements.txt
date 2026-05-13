@@ -1,0 +1,5 @@
+# Arcadify Shell GTK has no pip-installable runtime dependencies.
+# It requires GTK3 and PyGObject from the operating system.
+#
+# Debian/Ubuntu:
+#   sudo apt-get install python3 python3-gi gir1.2-gtk-3.0 gir1.2-gdkpixbuf-2.0
